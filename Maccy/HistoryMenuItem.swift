@@ -3,6 +3,7 @@ import Cocoa
 class HistoryMenuItem: NSMenuItem {
   public var isPinned = false
   public var item: HistoryItem!
+  public var type: String { "" }
   public var value = ""
 
   internal var clipboard: Clipboard!
@@ -33,6 +34,7 @@ class HistoryMenuItem: NSMenuItem {
     self.clipboard = clipboard
     self.item = item
     self.onStateImage = NSImage(named: "PinImage")
+    self.mixedStateImage = NSImage(named: "NSStatusAvailable")
     self.target = self
 
     if isImage(item) {
@@ -87,6 +89,14 @@ class HistoryMenuItem: NSMenuItem {
     self.isPinned = false
     self.keyEquivalent = ""
     self.state = .off
+  }
+
+  func mark() {
+    state = .mixed
+  }
+
+  func unmark() {
+    state = isPinned ? .on : .off
   }
 
   func resizeImage() {

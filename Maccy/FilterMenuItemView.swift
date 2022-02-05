@@ -319,12 +319,18 @@ class FilterMenuItemView: NSView, NSTextFieldDelegate {
     case .upArrow:
       if modifierFlags.contains(.command) {
         menu?.selectFirst()
+      } else if modifierFlags.contains(.shift) {
+        menu?.toggleMark()
+        menu?.selectPrevious(alt: modifierFlags.contains(.option))
       } else {
         menu?.selectPrevious(alt: modifierFlags.contains(.option))
       }
     case .downArrow:
       if modifierFlags.contains(.command) {
         menu?.selectLast()
+      } else if modifierFlags.contains(.shift) {
+        menu?.toggleMark()
+        menu?.selectNext(alt: modifierFlags.contains(.option))
       } else {
         menu?.selectNext(alt: modifierFlags.contains(.option))
       }

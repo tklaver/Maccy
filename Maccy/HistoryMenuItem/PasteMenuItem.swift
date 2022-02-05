@@ -14,6 +14,8 @@ extension HistoryMenuItem {
       }
     }
 
+    override public var type: String { "paste" }
+
     override func select() {
       clipboard.copy(item)
       clipboard.paste()

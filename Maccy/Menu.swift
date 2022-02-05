@@ -9,6 +9,7 @@ class Menu: NSMenu, NSMenuDelegate {
     var title: String { item.title }
     var item: HistoryItem!
     var menuItems: [HistoryMenuItem]
+    var isMarked = false
 
     init(value: String, item: HistoryItem?, menuItems: [HistoryMenuItem]) {
       self.value = value
@@ -77,6 +78,13 @@ class Menu: NSMenu, NSMenuDelegate {
     updateUnpinnedItemsVisibility()
     setKeyEquivalents(historyMenuItems)
     highlight(firstVisibleUnpinnedHistoryMenuItem ?? historyMenuItems.first)
+  }
+
+  func menuDidClose(_ menu: NSMenu) {
+    indexedItems.filter({ $0.isMarked }).forEach { indexedItem in
+      indexedItem.isMarked = false
+      indexedItem.menuItems.forEach { $0.unmark() }
+    }
   }
 
   func buildItems() {
@@ -178,10 +186,32 @@ class Menu: NSMenu, NSMenuDelegate {
   }
 
   func select() {
-    if let item = highlightedItem {
-      performActionForItem(at: index(of: item))
-      cancelTracking()
+    var itemsToSelect: [HistoryMenuItem] = []
+    guard let highlightedItem = highlightedItem as? HistoryMenuItem else {
+      return
     }
+
+    let markedItems = indexedItems.filter({ $0.isMarked })
+    if markedItems.isEmpty {
+      itemsToSelect.append(highlightedItem)
+    } else {
+      markedItems.forEach { markedItem in
+        (markedItem.menuItems as [HistoryMenuItem]).forEach { historyMenuItem in
+          if historyMenuItem.type == highlightedItem.type {
+            itemsToSelect.append(historyMenuItem)
+          }
+        }
+      }
+    }
+    
+    DispatchQueue.main.async {
+      itemsToSelect.forEach {
+        $0.select()
+        usleep(100000)
+      }
+    }
+
+    cancelTracking()
   }
 
   func selectPrevious(alt: Bool) {
@@ -204,27 +234,60 @@ class Menu: NSMenu, NSMenuDelegate {
     highlight(highlightableItems(items, alt: alt).last)
   }
 
-  func delete() {
-    guard let itemToRemove = highlightedItem else {
+  func toggleMark() {
+    guard let itemToMark = highlightedItem else {
       return
     }
 
-    if let historyItemToRemove = itemToRemove as? HistoryMenuItem {
-      let historyItemToRemoveIndex = index(of: historyItemToRemove)
-
-      if let historyItem = indexedItems.first(where: { $0.item == historyItemToRemove.item }) {
-        historyItem.menuItems.forEach(removeItem(_:))
-        if let removeIndex = indexedItems.firstIndex(of: historyItem) {
-          indexedItems.remove(at: removeIndex)
+    if let historyItemToMark = itemToMark as? HistoryMenuItem {
+      if let historyItem = indexedItems.first(where: { $0.item == historyItemToMark.item }) {
+        if historyItem.isMarked {
+          historyItem.menuItems.forEach({ $0.unmark() })
+          historyItem.isMarked = false
+        } else {
+          historyItem.menuItems.forEach({ $0.mark() })
+          historyItem.isMarked = true
         }
       }
-
-      history.remove(historyItemToRemove.item)
-
-      updateUnpinnedItemsVisibility()
-      setKeyEquivalents(historyMenuItems)
-      highlight(items[historyItemToRemoveIndex])
     }
+  }
+
+  func delete() {
+    var itemsToRemove: [IndexedItem] = []
+    var firstMenuItemToRemove = highlightedItem
+
+    let markedItems = indexedItems.filter({ $0.isMarked })
+    if markedItems.isEmpty {
+      if let menuItem = highlightedItem as? HistoryMenuItem {
+        if let indexedItem = indexedItems.first(where: { $0.item == menuItem.item }) {
+          itemsToRemove.append(indexedItem)
+        }
+      }
+    } else {
+      itemsToRemove.append(contentsOf: markedItems)
+      firstMenuItemToRemove = markedItems.first?.menuItems.first
+    }
+
+    guard !itemsToRemove.isEmpty else {
+      return
+    }
+
+    var firstMenuItemToRemoveIndex = 0
+    if let menuItem = firstMenuItemToRemove {
+      firstMenuItemToRemoveIndex = index(of: menuItem)
+    }
+
+    itemsToRemove.forEach { itemToRemove in
+      itemToRemove.menuItems.forEach(removeItem(_:))
+      if let removeIndex = indexedItems.firstIndex(of: itemToRemove) {
+        indexedItems.remove(at: removeIndex)
+      }
+      history.remove(itemToRemove.item)
+    }
+
+    updateUnpinnedItemsVisibility()
+    setKeyEquivalents(historyMenuItems)
+    highlight(items[firstMenuItemToRemoveIndex])
   }
 
   func pinOrUnpin() {

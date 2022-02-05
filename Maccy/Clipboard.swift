@@ -90,25 +90,22 @@ class Clipboard {
   func paste() {
     guard accessibilityAllowed else {
       Maccy.returnFocusToPreviousApp = false
-      // Show accessibility window async to allow menu to close.
-      DispatchQueue.main.async(execute: showAccessibilityWindow)
+      showAccessibilityWindow()
       return
     }
 
-    DispatchQueue.main.async {
-      let vCode = Sauce.shared.keyCode(by: .v)
-      let source = CGEventSource(stateID: .combinedSessionState)
-      // Disable local keyboard events while pasting
-      source?.setLocalEventsFilterDuringSuppressionState([.permitLocalMouseEvents, .permitSystemDefinedEvents],
-                                                         state: .eventSuppressionStateSuppressionInterval)
+    let vCode = Sauce.shared.keyCode(by: .v)
+    let source = CGEventSource(stateID: .combinedSessionState)
+    // Disable local keyboard events while pasting
+    source?.setLocalEventsFilterDuringSuppressionState([.permitLocalMouseEvents, .permitSystemDefinedEvents],
+                                                       state: .eventSuppressionStateSuppressionInterval)
 
-      let keyVDown = CGEvent(keyboardEventSource: source, virtualKey: vCode, keyDown: true)
-      let keyVUp = CGEvent(keyboardEventSource: source, virtualKey: vCode, keyDown: false)
-      keyVDown?.flags = .maskCommand
-      keyVUp?.flags = .maskCommand
-      keyVDown?.post(tap: .cgAnnotatedSessionEventTap)
-      keyVUp?.post(tap: .cgAnnotatedSessionEventTap)
-    }
+    let keyVDown = CGEvent(keyboardEventSource: source, virtualKey: vCode, keyDown: true)
+    let keyVUp = CGEvent(keyboardEventSource: source, virtualKey: vCode, keyDown: false)
+    keyVDown?.flags = .maskCommand
+    keyVUp?.flags = .maskCommand
+    keyVDown?.post(tap: .cgAnnotatedSessionEventTap)
+    keyVUp?.post(tap: .cgAnnotatedSessionEventTap)
   }
 
   @objc

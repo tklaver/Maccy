@@ -10,6 +10,8 @@ extension HistoryMenuItem {
       }
     }
 
+    override public var type: String { "copy" }
+
     override func select() {
       clipboard.copy(item)
     }

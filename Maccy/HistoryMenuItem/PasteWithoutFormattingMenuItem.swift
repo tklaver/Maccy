@@ -14,6 +14,8 @@ extension HistoryMenuItem {
       }
     }
 
+    override public var type: String { "paste_without_formatting" }
+
     override func select() {
       clipboard.copy(item, removeFormatting: true)
       clipboard.paste()
